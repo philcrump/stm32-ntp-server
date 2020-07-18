@@ -47,11 +47,25 @@ If you're after a high-performance embedded NTP server appliance then I can pers
 
 `firmware/config.h` contains config directives.
 
-* `GNSS_AID_` directives supply a known position and estimated standard deviation error to the GNSS Receiver to aid the initial position fix. If these are wrong then the GNSS receiver may fail to get a fix. Comment them out to disable.
+* `GNSS_AID_` directives supply a position and it's standard deviation error to the GNSS Receiver to aid the initial position fix. If these are wrong then the GNSS receiver may fail to get a fix. Comment them out to disable.
 
 * `NTPD_STRATUM_DEMOTE_TIMER_PERIOD` Sets the time period after last timepulse sync that the NTP server will advertise Stratum 1 (GPS-synced) before dropping to Stratum 16 (Unsynchronized).
 
 * `NTPD_STATUS_DEMOTE_TIMER_PERIOD` Sets the time period after last timepulse sync that the Webpage will show 'In Lock' before dropping to 'Holdover'. Does not affect NTP output.
+
+## Software Compilation
+
+This toolchain is designed for Linux.
+
+You must have `arm-none-eabi-gcc` from [GNU ARM embedded toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads) in your path.
+
+Running `firmware/build -M` will pack the web files and then compile all source files in parallel. The final linker stage can take a few seconds. Running without the `-M` flag will remove parallel compilation and may help errors to be more readable.
+
+## Flashing
+
+`firmware/flash` will flash a compiled firmware image. This first looks for a connected BlackMagic JTAG probe, and if unsuccessful will drop back to `st-flash` from [st-utils](https://github.com/stlink-org/stlink) to flash over the ST-Link USB.
+
+`firmware/build -MF` will build, and if successful also attempt to flash.
 
 ## Wiring
 
