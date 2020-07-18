@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+wireviz *.yaml;
+rm *.html *.bom.tsv *.gv *.svg;

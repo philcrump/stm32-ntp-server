@@ -1,0 +1,19 @@
+connectors:
+  X1:
+    type: STM32F429ZI Nucleo Board
+    subtype: CN11
+    pinout: [PC10 (TXD), PC11 (RXD), PC12 (TP), PD2, VDD, E5V, BT0, GND, PF6, NC, PF7, 3V3, PA13, NRST, PA14, 3V3, PA15, 5V, GND, GND, "..."]
+  X2:
+    type: Uputronics MAX-M8Q GNSS Breakout Board
+    pinout: [SDA, SCL, TXD, RXD, TP, "-", GND, VCC]
+
+cables:
+  W1:
+    length: 0.25
+    colors: [BU, WH, YE, RD, BK]
+
+connections:
+  -
+    - X1: [1,2,3,19,16]
+    - W1: [1,2,3,5,4]
+    - X2: [4,3,5,7,8]

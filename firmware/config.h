@@ -1,0 +1,16 @@
+#ifndef __NTPD_CONFIG_H__
+#define __NTPD_CONFIG_H__
+
+#define GNSS_UBLOX_VERSION   8
+
+#define GNSS_AID_POSITION
+#define GNSS_AID_POS_LATITUDE 	(51.2500 / 1e-7)
+#define GNSS_AID_POS_LONGITUDE  (-0.5946 / 1e-7)
+#define GNSS_AID_POS_ALTITUDE   (60 / 1e-2) // 60m
+#define GNSS_AID_POS_STDDEV     (199 / 1e-5) // 199km
+
+#define NTPD_STRATUM_DEMOTE_TIMER_PERIOD	TIME_S2I(10*60) // 10 minutes
+
+#define NTPD_STATUS_DEMOTE_TIMER_PERIOD	TIME_MS2I(1200) // 10 minutes
+
+#endif /* __NTPD_CONFIG_H__ */

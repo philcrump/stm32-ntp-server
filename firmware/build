@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+
+source_dir="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
+cd "${source_dir}"
+
+COLOUR_GREEN='\033[0;32m'
+COLOUR_YELLOW='\033[1;33m'
+COLOUR_PURPLE='\033[0;35m'
+COLOUR_RED='\033[0;31m'
+COLOUR_OFF='\033[0;00m'
+CLEAR_LINE='\033[2K'
+
+_ERROR_="${COLOUR_RED}[ERROR]${COLOUR_OFF}"
+_INFO_="${COLOUR_PURPLE}[INFO]${COLOUR_OFF}"
+_DEBUG_="${COLOUR_YELLOW}[DEBUG]${COLOUR_OFF}"
+
+opt_verbose=false
+opt_flash=false
+opt_debug=false
+opt_asm=false
+opt_werror=false
+opt_sound=false
+opt_mthread=false
+
+hyphenjoin() {
+  str=""
+  while [ $# -gt 0 ]
+  do
+    str="$str$1-"
+    shift
+  done
+  if [ ! -z "$str" ]
+  then
+    str="${str::-1}"
+  fi
+  echo "$str"
+}
+
+gccversion() {
+  echo "$(arm-none-eabi-gcc -dumpversion)"
+}
+
+githash() {
+  githash="$(git describe --dirty --always)"
+  # Mark as dirty if untracked files exist
+  if [ -z "$(echo "${githash}" | grep "dirty")" ] && [ ! -z "$(git status --porcelain | grep "^??")" ]; then
+    githash="${githash}-dirty"
+  fi
+  echo $githash
+}
+
+githash_x32() {
+  githash_x32="0x$(git describe --always)"
+  # Set lowest nibble to 0xf if dirty, 0x0 otherwise.
+  if [ ! -z "$(githash | grep "dirty")" ]; then
+    githash_x32="${githash_x32}f"
+  else
+    githash_x32="${githash_x32}0"
+  fi
+  echo $githash_x32
+}
+
+#device_name="STM32F042K6"
+#device_ram=$((6*1024))
+#device_flash=$((32*1024))
+
+#device_name="STM32F746NG"
+#device_ram=$((240*1024)) # Main bank
+#device_flash=$((1024*1024))
+
+device_name="STM32F429ZI"
+device_ram=$((112*1024)) # Main bank
+device_flash=$((1024*1024))
+
+size_binary() {
+  size=`arm-none-eabi-size -A -d $1`;
+
+  size_text=`echo "$size" | grep '\.text' | grep -o -E '[0-9]+' | sed -n 1p`;
+  size_rodata=`echo "$size" | grep '\.rodata' | grep -o -E '[0-9]+' | sed -n 1p`;
+  size_data=`echo "$size" | grep '\.data' | grep -o -E '[0-9]+' | sed -n 1p`;
+  size_bss=`echo "$size" | grep '\.bss' | grep -o -E '[0-9]+' | sed -n 1p`;
+  size_heap=`echo "$size" | grep '\.heap' | grep -o -E '[0-9]+' | sed -n 1p`;
+
+  size_flash=$(($size_text+$size_data+$size_rodata));
+  size_static=$(($size_data+$size_bss));
+  size_ram=$(($size_static+$size_heap));
+  size_fdata=$(($size_data+$size_rodata));
+
+  printf "$_INFO_ Device Resources (%s)\n" ${device_name};
+  printf "  RAM:       %   6s B / % 6s B\n" ${size_ram} ${device_ram};
+  printf "   - Static: %   6s B\n" ${size_static};
+  printf "   - Heap:   %   6s B\n" ${size_heap};
+  printf "  Flash:     %   6s B / % 6s B (%2s%%)\n" ${size_flash} ${device_flash} $(((100*$size_flash)/$device_flash));
+  printf "   - Code:   %   6s B\n" ${size_text};
+  printf "   - Data:   %   6s B\n" ${size_fdata};
+}
+
+asmdump() {
+  arm-none-eabi-objdump -DSlx ${1} > ${1}.asm
+  printf "$_INFO_$COLOUR_GREEN Extracted assembly$COLOUR_OFF [${1}.asm]\n"
+}
+
+## Read Flags
+OPTIND=1
+while getopts ":vDFmwSM" opt; do
+  case "$opt" in
+    v) # Verbose
+      opt_verbose=true
+      ;;
+    D) # Debug
+      opt_debug=true
+      ;;
+    F) # Flash
+      opt_flash=true
+      ;;
+    m) # ASM
+      opt_asm=true
+      ;;
+    w) # Werror
+      opt_werror=true
+      ;;
+    S) # Flash Sound
+      opt_sound=true
+      ;;
+    M) # Multithread Compile
+      opt_mthread=true
+      ;;
+    ?) # Illegal Option
+      echo -e "$_ERROR_ Illegal option '$OPTARG'"
+      exit 3
+      ;;
+  esac
+done
+for i in `seq 2 $OPTIND`; do shift; done
+
+githash_var=`githash`
+filename="$(hyphenjoin "stm32ntpd" "${githash_var}")"
+mkdir -p "builds/"
+
+flags="TARGET_FILENAME=\"${filename}\" GITVERSION=\"${githash_var}\" GITVERSION_X32=\"`githash_x32`\""
+printf "$_INFO_ Using ARM-GCC version: `gccversion`\n";
+printf "$_INFO_ Firmware version: ${githash_var}\n";
+
+if $opt_verbose; then
+  printf "$_INFO_ Compile Verbosely:$COLOUR_YELLOW ON $COLOUR_OFF\n";
+  flags+=" USE_VERBOSE_COMPILE=yes";
+fi
+
+if $opt_werror; then
+  printf "$_INFO_ Compiler treat Warnings as Errors:$COLOUR_RED ON $COLOUR_OFF\n";
+  flags+=" WERROR=1";
+fi
+
+if $opt_mthread; then
+  mthreads=`nproc`
+  printf "$_INFO_ Multithread build enabled, threads: ${mthreads}$COLOUR_OFF\n";
+  flags+=" -j${mthreads}";
+fi
+
+if [ -f web/build ]; then
+  web/build;
+fi
+
+printf "$_INFO_ Compiling..\n";
+make ${flags} \
+&& {
+  printf "$_INFO_$COLOUR_GREEN Build successful$COLOUR_OFF [builds/${filename}.elf]\n"
+} || {
+  printf "$_ERROR_$COLOUR_RED There were errors in the build process$COLOUR_OFF\n" \
+  && exit 1
+}
+size_binary "builds/${filename}.elf"
+
+if $opt_asm; then asmdump "builds/${filename}.elf"; fi
+
+if $opt_debug;
+then
+  ./debug "builds/${filename}";
+elif $opt_flash;
+then
+  fflags=""
+  if $opt_sound; then fflags+=" -S"; fi
+  ./flash ${fflags} "builds/${filename}";
+fi

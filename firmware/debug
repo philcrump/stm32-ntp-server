@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+source_dir="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
+cd "$source_dir"
+
+COLOUR_GREEN='\033[0;32m'
+COLOUR_YELLOW='\033[1;33m'
+COLOUR_PURPLE='\033[0;35m'
+COLOUR_RED='\033[0;31m'
+COLOUR_OFF='\033[0;00m'
+CLEAR_LINE='\033[2K'
+
+_ERROR_="${COLOUR_RED}[ERROR]${COLOUR_OFF}"
+_INFO_="${COLOUR_PURPLE}[INFO]${COLOUR_OFF}"
+_DEBUG_="${COLOUR_YELLOW}[DEBUG]${COLOUR_OFF}"
+
+flashtool="arm-none-eabi-gdb"
+programmer=false
+
+locate_black_magic() {
+  probe="`ls 2>/dev/null -Ub1 -- /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_*-if00 | head -n 1`"
+  if ! [ -z "$probe" ]
+  then
+    echo "$probe"
+    return 0
+  fi
+  return 1
+}
+debug_target() {
+  $flashtool -q \
+    -ex 'file '$binary                          \
+    -ex 'target extended-remote '$programmer    \
+    -ex 'monitor tpwr $programmer_power'        \
+    -ex 'monitor swdp_scan'                     \
+    -ex 'attach 1'                              \
+    -ex 'set mem inaccessible-by-default off'   \
+    -ex 'load '$binary                          \
+    -ex 'compare-sections'
+}
+
+debug_target_st-util() {
+  $flashtool -q \
+    -ex 'file '$binary                          \
+    -ex 'set remote hardware-breakpoint-limit 8'\
+    -ex 'set remote hardware-watchpoint-limit 4'\
+    -ex 'set remotetimeout 10000'               \
+    -ex 'set remote interrupt-on-connect off'   \
+    -ex 'set mem inaccessible-by-default off'   \
+    -ex 'target extended-remote localhost:4242' \
+    -ex 'load '$binary
+}
+
+debug_target_openocd() {
+  $flashtool -q \
+    -ex 'file '$binary                          \
+    -ex 'set remote hardware-breakpoint-limit 8'\
+    -ex 'set remote hardware-watchpoint-limit 4'\
+    -ex 'set remotetimeout 10000'               \
+    -ex 'set remote interrupt-on-connect off'   \
+    -ex 'set mem inaccessible-by-default off'   \
+    -ex 'target extended-remote localhost:3333' \
+    -ex 'load '$binary
+}
+
+binary="${1}.elf"
+
+if [ "$binary" == ".elf" ]; then
+  binary="$(ls -t builds/*.elf | head -1)"
+  echo -e "$_INFO_ Most recent build selected: ${binary}"
+fi
+
+if [[ ! -f $binary ]]; then
+  echo -e "$_ERROR_ Binary $binary not found!"
+  exit 1
+fi
+
+if programmer="`locate_black_magic`";
+then
+	debug_target;
+else
+  debug_target_openocd;
+fi

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="description" content="NTP Server">
+<meta name="author" content="Phil Crump M0DNY">
+<link rel="icon" type="image/png" href="/favicon.png" sizes="128x128">
+<title>STM32 NTP Server</title>
+<link rel="stylesheet" href="index.css">
+<script defer src="mithril.min.js"></script>
+<script defer src="d3.v4.min.js"></script>
+<script defer src="index.js"></script>
+</head>
+<body>
+<h1>STM32 NTP Server</h1>
+
+<table id="gnss-ui-table">
+  <tr>
+    <td style="vertical-align:top">
+      <h2>GNSS Receiver</h2>
+      <div id="gnss-ui"></div>
+      <h2>NTP Server</h2>
+      <div id="ntpd-ui"></div>
+    </td>
+    <td id="gnss-svs-ui" style="vertical-align:top">
+    </td>
+    <td style="vertical-align:top">
+      <div class="Orbits">
+        <div class="centered">
+          <div id="Orbits-Drawing"></div>
+        </div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<div id="footer">
+    <pre>© 2020 Phil Crump M0DNY &lt;phil@philcrump.co.uk&gt;</pre>
+</div>
+
+</body>
+</html>

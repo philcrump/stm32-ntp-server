@@ -1,0 +1,23 @@
+# Use barebones Travis image
+language: c
+
+# Only grab latest git commit (no need for history)
+git:
+  depth: 1
+
+# Cache the compilers folder so we don't have to download and unpack it for every build
+cache:
+  directories:
+    - $HOME/compilers/
+
+# Download and unpack the latest GNU ARM Embedded Toolchain if it's not already there
+#  Also add the gcc/bin folder to $PATH
+install:
+  - export GCC_DIR=$HOME/compilers/gcc-arm-none-eabi-9-2020-q2-update
+  - export GCC_ARCHIVE=$HOME/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2
+  - export GCC_URL=https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2
+  - if [ ! -e $GCC_DIR/bin/arm-none-eabi-gcc ]; then wget -nv $GCC_URL -O $GCC_ARCHIVE; tar xfj $GCC_ARCHIVE -C $HOME/compilers; fi
+  - export PATH=$PATH:$GCC_DIR/bin
+
+# Command to run tests
+script: cd firmware/ && ./build -M -w
