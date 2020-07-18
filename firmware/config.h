@@ -1,8 +1,6 @@
 #ifndef __NTPD_CONFIG_H__
 #define __NTPD_CONFIG_H__
 
-#define GNSS_UBLOX_VERSION   8
-
 #define GNSS_AID_POSITION
 #define GNSS_AID_POS_LATITUDE 	(51.2500 / 1e-7)
 #define GNSS_AID_POS_LONGITUDE  (-0.5946 / 1e-7)

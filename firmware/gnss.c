@@ -5,14 +5,6 @@
 
 #include <string.h>
 
-#if GNSS_UBLOX_VERSION == 7
-  #define GPS_NAVPVT_LEN  84
-#elif GNSS_UBLOX_VERSION == 8
-  #define GPS_NAVPVT_LEN  92
-#else
-  #error "You must select Ublox version (7/8) for NAV-PVT message."
-#endif
-
 gnss_status_t gnss_status = { 0 };
 
 int32_t gnss_aid_position_latitude = GNSS_AID_POS_LATITUDE;
